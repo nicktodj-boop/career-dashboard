@@ -1,0 +1,14 @@
+# Cloudflare 專案設定檔：告訴 Cloudflare 這個專案長怎樣
+name = "career-dashboard"               # 專案名（之後網址、Worker 名都用它）
+main = "src/index.js"                   # 後端程式（Worker）的進入點
+compatibility_date = "2026-05-28"       # 鎖定 Workers 執行環境的版本
+
+# 前端靜態檔放這夾，Cloudflare 自動當網頁送出（這就是架構圖的 Presentation 層）
+[assets]
+directory = "./public"
+
+# 綁一個 D1 資料庫，程式裡用 env.DB 拿到它（架構圖的 Data 層）
+[[d1_databases]]
+binding = "DB"                          # 程式中的變數名
+database_name = "career-dashboard-db"
+database_id = "2c5dc590-0f4b-4c68-b75a-c85bef4bac15"  # 線上 D1 真 id（APAC，2026-05 建立）
