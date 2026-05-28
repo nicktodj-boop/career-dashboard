@@ -32,7 +32,7 @@ INSERT INTO courses (id,name,en,credits,source,category,exam,dup) VALUES
  (18,'商事法','business law',2,'major','mgmt',0,0),
  (19,'企業倫理','ethics',2,'major','mgmt',0,0),
  (20,'資訊管理導論','intro MIS',2,'major','mgmt',0,0),
- (21,'專題製作','capstone',5,'major','program',0,0),
+ (21,'專題製作','capstone',4,'major','program',0,0),
  (22,'程式語言（一）','prog lang I',4,'minor','minor',0,1),
  (23,'程式語言（二）','prog lang II',4,'minor','minor',0,1),
  (24,'計算機概論','intro CS',3,'minor','minor',0,0),
