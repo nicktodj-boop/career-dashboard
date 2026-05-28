@@ -50,6 +50,11 @@ export default {
       // 更新完成狀態：前端勾選「已修」時呼叫
       // body 範例：{ "item_type": "course", "item_id": 1, "done": true }
       if (pathname === "/api/progress" && method === "PATCH") {
+        // 只有帶對 admin token 的請求能改進度（GET 讀取仍公開）
+        const reqToken = request.headers.get("X-Admin-Token");
+        if (!reqToken || reqToken !== env.ADMIN_TOKEN) {
+          return json({ error: "unauthorized" }, 401);
+        }
         const { item_type, item_id, done } = await request.json();
         await env.DB.prepare(`
           INSERT INTO progress (item_type, item_id, done, updated_at)

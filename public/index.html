@@ -73,6 +73,7 @@
     <div class="tag">Cloudflare Pages + Workers + D1 · 本地開發中</div>
     <h1>生涯規劃進度儀表板</h1>
     <p class="lede">勾選已修的課，學分進度條即時更新。資料存在 D1，經 Workers API 讀寫。</p>
+    <p class="tag" id="lock" style="margin-top:0.7rem"></p>
   </header>
 
   <section class="card">
@@ -94,6 +95,25 @@
 <script>
   const api = (path, opts) => fetch("/api" + path, opts).then(r => r.json());
   const srcName = { major: "資管必修", minor: "資工第二主修", cross: "加修", gen: "通識", campus: "校內", selflearn: "自補", edge: "差異化" };
+
+  // ---- 編輯權限：只有輸入過管理密碼的人能改，密碼存本機瀏覽器 ----
+  const getToken = () => localStorage.getItem("adminToken") || "";
+  function renderLock() {
+    const el = document.getElementById("lock");
+    const editable = !!getToken();
+    el.innerHTML = editable
+      ? '🔓 編輯模式 · <a href="#" id="lockBtn">鎖定</a>'
+      : '🔒 唯讀模式 · <a href="#" id="lockBtn">解鎖編輯</a>';
+    document.querySelectorAll('#courses input[type=checkbox], #skills input[type=checkbox]')
+      .forEach(c => { c.disabled = !editable; });
+  }
+  document.addEventListener("click", (e) => {
+    if (e.target.id !== "lockBtn") return;
+    e.preventDefault();
+    if (getToken()) localStorage.removeItem("adminToken");
+    else { const p = prompt("輸入管理密碼"); if (p) localStorage.setItem("adminToken", p); }
+    renderLock();
+  });
 
   async function loadStats() {
     const stats = await api("/stats");
@@ -123,23 +143,32 @@
     document.getElementById(elId).innerHTML = list.map(i => rowHTML(i, type)).join("");
   }
 
-  // 勾選 → PATCH 回 D1 → 重新載入進度條
+  // 勾選 → 帶 admin token PATCH → 沒權限會被擋（401）
   document.addEventListener("change", async (e) => {
     if (e.target.type !== "checkbox") return;
     const li = e.target.closest("li.row");
     const done = e.target.checked;
-    li.classList.toggle("done", done);
-    await api("/progress", {
+    const res = await fetch("/api/progress", {
       method: "PATCH",
-      headers: { "content-type": "application/json" },
+      headers: { "content-type": "application/json", "X-Admin-Token": getToken() },
       body: JSON.stringify({ item_type: li.dataset.type, item_id: Number(li.dataset.id), done })
     });
+    if (!res.ok) {
+      e.target.checked = !done;
+      localStorage.removeItem("adminToken");
+      renderLock();
+      alert("沒有權限或密碼錯誤。請點右上『解鎖編輯』輸入正確的管理密碼。");
+      return;
+    }
+    li.classList.toggle("done", done);
     loadStats();
   });
 
   loadStats();
-  loadList("/courses", "courses", "course");
-  loadList("/skills", "skills", "skill");
+  Promise.all([
+    loadList("/courses", "courses", "course"),
+    loadList("/skills", "skills", "skill"),
+  ]).then(renderLock);
 </script>
 </body>
 </html>
