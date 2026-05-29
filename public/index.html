@@ -39,7 +39,8 @@
   .bars { display: grid; gap: 0.9rem; }
   .bar-row { display: grid; grid-template-columns: 5rem 1fr auto; align-items: center; gap: 0.9rem; }
   .bar-row .lbl { font-weight: 700; font-size: 0.9rem; }
-  .track { height: 0.85rem; background: oklch(0.92 0.006 80); border-radius: 1rem; overflow: hidden; }
+  .track { height: 0.85rem; background: oklch(0.92 0.006 80); border-radius: 1rem; overflow: visible; position: relative; }
+  .marker { position: absolute; top: 50%; transform: translate(-50%,-50%); width: 0.55rem; height: 1.2rem; border: 2px solid oklch(0.28 0.012 60); background: var(--surface); border-radius: 3px; transition: left 0.5s cubic-bezier(0.22,1,0.36,1); pointer-events: none; box-shadow: 0 1px 2px oklch(0.28 0.012 60 / 0.25); }
   .track.major { background: color-mix(in oklch, var(--major) 34%, var(--surface)); }
   .track.minor { background: color-mix(in oklch, var(--minor) 34%, var(--surface)); }
   .track.cross { background: color-mix(in oklch, var(--cross) 34%, var(--surface)); }
@@ -137,7 +138,7 @@
       const full = pct >= 100 ? " full" : "";
       return `<div class="bar-row">
         <span class="lbl">${b.label}</span>
-        <span class="track ${b.cls}"><span class="fill ${b.cls}${full}" style="width:${pct}%"></span></span>
+        <span class="track ${b.cls}"><span class="fill ${b.cls}${full}" style="width:${pct}%"></span><span class="marker" style="left:${pct}%"></span></span>
         <span class="val"><b>${pct}%</b> · ${b.done}/${b.total} ${b.unit}</span>
       </div>`;
     }).join("");
