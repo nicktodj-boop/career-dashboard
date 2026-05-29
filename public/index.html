@@ -42,6 +42,9 @@
   .track { height: 0.7rem; background: oklch(0.92 0.006 80); border-radius: 1rem; overflow: hidden; }
   .fill { height: 100%; border-radius: 1rem; transition: width 0.5s cubic-bezier(0.22,1,0.36,1); }
   .fill.major { background: var(--major); } .fill.minor { background: var(--minor); } .fill.cross { background: var(--cross); } .fill.gen { background: var(--ink-faint); }
+  .fill.exam { background: var(--exam); } .fill.edge { background: var(--edge); }
+  .fill.full { background: oklch(0.62 0.14 155); }
+  .bar-row .val b { color: var(--ink); font-weight: 800; }
   .bar-row .val { font-family: "JetBrains Mono", monospace; font-size: 0.8rem; color: var(--ink-soft); white-space: nowrap; }
 
   ul { list-style: none; }
@@ -116,14 +119,20 @@
   });
 
   async function loadStats() {
-    const stats = await api("/stats");
+    const [stats, courses, skills] = await Promise.all([api("/stats"), api("/courses"), api("/skills")]);
+    const rows = stats.map(s => ({ label: srcName[s.source] || s.source, done: s.done, total: s.total, unit: "學分", cls: s.source }));
+    const exT = courses.filter(c => c.exam).reduce((a, c) => a + c.credits, 0);
+    const exD = courses.filter(c => c.exam && c.done).reduce((a, c) => a + c.credits, 0);
+    rows.push({ label: "考研考科", done: exD, total: exT, unit: "學分", cls: "exam" });
+    rows.push({ label: "技能完成", done: skills.filter(s => s.done).length, total: skills.length, unit: "項", cls: "edge" });
     const bars = document.getElementById("bars");
-    bars.innerHTML = stats.map(s => {
-      const pct = s.total ? Math.round((s.done / s.total) * 100) : 0;
+    bars.innerHTML = rows.map(b => {
+      const pct = b.total ? Math.round(b.done / b.total * 100) : 0;
+      const full = pct >= 100 ? " full" : "";
       return `<div class="bar-row">
-        <span class="lbl">${srcName[s.source] || s.source}</span>
-        <span class="track"><span class="fill ${s.source}" style="width:${pct}%"></span></span>
-        <span class="val">${s.done} / ${s.total} 學分</span>
+        <span class="lbl">${b.label}</span>
+        <span class="track"><span class="fill ${b.cls}${full}" style="width:${pct}%"></span></span>
+        <span class="val"><b>${pct}%</b> · ${b.done}/${b.total} ${b.unit}</span>
       </div>`;
     }).join("");
   }
