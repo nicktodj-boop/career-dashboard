@@ -45,7 +45,10 @@
 ### 5. 篩選
 - 修課清單可切換：全部／未修／★考研／△重疊（純前端依列的狀態顯示／隱藏）。
 
-### 6. 權限控制（公開唯讀，只有我能改）
+### 6. 每課備註
+- 解鎖後，每門課右邊的 `✎` 可寫一筆備註（`PUT /api/note`，需密碼），備註顯示在課名下方。
+
+### 7. 權限控制（公開唯讀，只有我能改）
 - **讀取**（GET）公開：任何人能看 dashboard。
 - **寫入**（PATCH 勾選）需 admin token：請求要帶 `X-Admin-Token`，等於 `wrangler secret` 存的 `ADMIN_TOKEN` 才放行，否則回 `401`。
 - 前端「🔒 解鎖編輯」輸入密碼（存 `localStorage`），訪客的核取方塊是唯讀（灰）。
@@ -60,6 +63,7 @@
 | `GET /api/skills` | 技能清單 | 公開 |
 | `GET /api/stats` | 各來源學分統計 | 公開 |
 | `PATCH /api/progress` | 更新完成狀態 | 需 `X-Admin-Token` |
+| `PUT /api/note` | 寫課程備註 | 需 `X-Admin-Token` |
 
 ## 資料結構（D1）
 
@@ -67,6 +71,7 @@
 courses(id, name, en, credits, source, category, exam, dup)
 skills(id, name, en, layer, source, priority)
 progress(item_type, item_id, done, updated_at)   -- PRIMARY KEY (item_type, item_id)
+notes(item_type, item_id, note, updated_at)      -- PRIMARY KEY (item_type, item_id)
 ```
 `progress` 的複合主鍵讓「同一項目只有一筆進度」，並支援 `PATCH` 的 `ON CONFLICT ... DO UPDATE`（upsert）。
 
