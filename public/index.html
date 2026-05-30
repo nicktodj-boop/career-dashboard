@@ -82,10 +82,13 @@
   .mk { font-size: 0.72rem; font-weight: 700; }
   .mk.exam { color: var(--exam); } .mk.dup { color: var(--dup); }
   .cr { font-family: "JetBrains Mono", monospace; font-size: 0.8rem; color: var(--ink-faint); }
-  .filters { display: flex; gap: 0.4rem; margin-bottom: 0.9rem; flex-wrap: wrap; }
-  .filters button { font-size: 0.78rem; padding: 0.32rem 0.75rem; border: 1px solid var(--rule); border-radius: 1rem; background: var(--surface); color: var(--ink-soft); cursor: pointer; transition: background 0.15s, color 0.15s, border-color 0.15s; }
+  .filters { display: flex; gap: 0.3rem; margin-bottom: 0.85rem; flex-wrap: wrap; }
+  .filters button { font-size: 0.72rem; padding: 0.2rem 0.55rem; border: 1px solid var(--rule); border-radius: 0.7rem; background: var(--surface); color: var(--ink-soft); cursor: pointer; transition: background 0.15s, color 0.15s, border-color 0.15s; }
   .filters button:hover { border-color: var(--ink-faint); }
   .filters button.on { background: var(--ink); color: var(--surface); border-color: var(--ink); }
+  .note-btn { background: none; border: 1px solid var(--rule); border-radius: 0.4rem; font-size: 0.72rem; padding: 0.1rem 0.4rem; cursor: pointer; color: var(--ink-faint); }
+  .note-btn:disabled { opacity: 0.35; cursor: default; }
+  .note-txt { font-size: 0.74rem; color: var(--ink-soft); margin-top: 0.25rem; background: color-mix(in oklch, var(--rule) 28%, transparent); padding: 0.2rem 0.5rem; border-radius: 0.35rem; display: inline-block; }
   .loading { color: var(--ink-faint); font-size: 0.9rem; }
   :focus-visible { outline: 2px solid var(--cross); outline-offset: 2px; }
 </style>
@@ -135,7 +138,7 @@
     el.innerHTML = editable
       ? '🔓 編輯模式 · <a href="#" id="lockBtn">鎖定</a>'
       : '🔒 唯讀模式 · <a href="#" id="lockBtn">解鎖編輯</a>';
-    document.querySelectorAll('#courses input[type=checkbox], #skills input[type=checkbox]')
+    document.querySelectorAll('#courses input[type=checkbox], #skills input[type=checkbox], #courses .note-btn')
       .forEach(c => { c.disabled = !editable; });
   }
   document.addEventListener("click", (e) => {
@@ -159,6 +162,26 @@
         || (f === "dup" && li.querySelector(".mk.dup"));
       li.style.display = show ? "" : "none";
     });
+  });
+
+  // 備註：解鎖後點 ✎ → 輸入 → PUT /api/note → 更新顯示
+  document.addEventListener("click", async (e) => {
+    if (!e.target.matches(".note-btn")) return;
+    const li = e.target.closest("li.row");
+    const note = prompt("這門課的備註", li.dataset.note || "");
+    if (note === null) return;
+    const res = await fetch("/api/note", {
+      method: "PUT",
+      headers: { "content-type": "application/json", "X-Admin-Token": getToken() },
+      body: JSON.stringify({ item_type: li.dataset.type, item_id: Number(li.dataset.id), note })
+    });
+    if (!res.ok) { alert("沒有權限，請先點右上『解鎖編輯』。"); return; }
+    li.dataset.note = note;
+    let txt = li.querySelector(".note-txt");
+    if (note) {
+      if (!txt) { txt = document.createElement("div"); txt.className = "note-txt"; li.querySelector(".nm").appendChild(txt); }
+      txt.textContent = note;
+    } else if (txt) { txt.remove(); }
   });
 
   async function loadStats() {
@@ -207,10 +230,12 @@
   function rowHTML(item, type) {
     const marks = (item.exam ? '<span class="mk exam">★考研</span>' : '') + (item.dup ? '<span class="mk dup">△重疊</span>' : '');
     const extra = type === "course" ? `<span class="cr">${item.credits}學分</span>` : '';
-    return `<li class="row ${item.done ? 'done' : ''}" data-type="${type}" data-id="${item.id}">
+    const noteBtn = type === "course" ? '<button class="note-btn" title="備註">✎</button>' : '';
+    const noteTxt = item.note ? `<div class="note-txt">${item.note}</div>` : '';
+    return `<li class="row ${item.done ? 'done' : ''}" data-type="${type}" data-id="${item.id}" data-note="${(item.note || '').replace(/"/g, '&quot;')}">
       <input type="checkbox" ${item.done ? 'checked' : ''}>
-      <span class="nm">${item.name}${item.en ? `<span class="en">${item.en}</span>` : ''}</span>
-      <span class="meta">${extra}<span class="src ${item.source}">${srcName[item.source] || item.source}</span>${marks}</span>
+      <span class="nm">${item.name}${item.en ? `<span class="en">${item.en}</span>` : ''}${noteTxt}</span>
+      <span class="meta">${extra}${noteBtn}<span class="src ${item.source}">${srcName[item.source] || item.source}</span>${marks}</span>
     </li>`;
   }
 

@@ -14,9 +14,10 @@ export default {
       // 課程清單
       if (pathname === "/api/courses" && method === "GET") {
         const { results } = await env.DB.prepare(`
-          SELECT c.*, COALESCE(p.done, 0) AS done
+          SELECT c.*, COALESCE(p.done, 0) AS done, n.note AS note
           FROM courses c
           LEFT JOIN progress p ON p.item_type = 'course' AND p.item_id = c.id
+          LEFT JOIN notes n ON n.item_type = 'course' AND n.item_id = c.id
           ORDER BY c.id
         `).all();
         return json(results);
@@ -63,6 +64,22 @@ export default {
           DO UPDATE SET done = ?3, updated_at = datetime('now')
         `).bind(item_type, item_id, done ? 1 : 0).run();
         return json({ ok: true, item_type, item_id, done: !!done });
+      }
+
+      // 寫備註（需 admin token）
+      if (pathname === "/api/note" && method === "PUT") {
+        const reqToken = request.headers.get("X-Admin-Token");
+        if (!reqToken || reqToken !== env.ADMIN_TOKEN) {
+          return json({ error: "unauthorized" }, 401);
+        }
+        const { item_type, item_id, note } = await request.json();
+        await env.DB.prepare(`
+          INSERT INTO notes (item_type, item_id, note, updated_at)
+          VALUES (?1, ?2, ?3, datetime('now'))
+          ON CONFLICT(item_type, item_id)
+          DO UPDATE SET note = ?3, updated_at = datetime('now')
+        `).bind(item_type, item_id, note).run();
+        return json({ ok: true });
       }
 
       return json({ error: "not found", pathname }, 404);
