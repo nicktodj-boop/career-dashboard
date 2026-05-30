@@ -82,6 +82,10 @@
   .mk { font-size: 0.72rem; font-weight: 700; }
   .mk.exam { color: var(--exam); } .mk.dup { color: var(--dup); }
   .cr { font-family: "JetBrains Mono", monospace; font-size: 0.8rem; color: var(--ink-faint); }
+  .filters { display: flex; gap: 0.4rem; margin-bottom: 0.9rem; flex-wrap: wrap; }
+  .filters button { font-size: 0.78rem; padding: 0.32rem 0.75rem; border: 1px solid var(--rule); border-radius: 1rem; background: var(--surface); color: var(--ink-soft); cursor: pointer; transition: background 0.15s, color 0.15s, border-color 0.15s; }
+  .filters button:hover { border-color: var(--ink-faint); }
+  .filters button.on { background: var(--ink); color: var(--surface); border-color: var(--ink); }
   .loading { color: var(--ink-faint); font-size: 0.9rem; }
   :focus-visible { outline: 2px solid var(--cross); outline-offset: 2px; }
 </style>
@@ -104,6 +108,12 @@
 
   <section class="card">
     <h2>修課清單</h2>
+    <div class="filters" id="filters">
+      <button data-f="all" class="on">全部</button>
+      <button data-f="todo">未修</button>
+      <button data-f="exam">★ 考研</button>
+      <button data-f="dup">△ 重疊</button>
+    </div>
     <ul id="courses"><li class="loading">載入中…</li></ul>
   </section>
 
@@ -134,6 +144,21 @@
     if (getToken()) localStorage.removeItem("adminToken");
     else { const p = prompt("輸入管理密碼"); if (p) localStorage.setItem("adminToken", p); }
     renderLock();
+  });
+
+  // 修課清單篩選：純前端依 checkbox 與標記顯示/隱藏
+  document.addEventListener("click", (e) => {
+    if (!e.target.matches("#filters button")) return;
+    const f = e.target.dataset.f;
+    document.querySelectorAll("#filters button").forEach(b => b.classList.toggle("on", b === e.target));
+    document.querySelectorAll("#courses li.row").forEach(li => {
+      const checked = li.querySelector("input").checked;
+      const show = f === "all"
+        || (f === "todo" && !checked)
+        || (f === "exam" && li.querySelector(".mk.exam"))
+        || (f === "dup" && li.querySelector(".mk.dup"));
+      li.style.display = show ? "" : "none";
+    });
   });
 
   async function loadStats() {
